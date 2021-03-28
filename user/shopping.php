@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+	<?php require '../boot_header.php'; ?>
+<!-- <style>
+  /* Make the image fully responsive */
+  .carousel-inner img {
+    width: 100%;
+    height: 100%;
+  }
+</style>
+</head> -->
+<body>
+	<?php
+		include ("menu.php");
+		$sql = "SELECT * FROM product WHERE product_amount>0";
+		$result = $connect->query($sql);
+
+	?>
+	<?php 
+		if($result->num_rows==0){
+			echo "<center><h3 style='margin-top:10%'>สินค้าหมด</h3>";
+		}else{
+	?>
+	<div class="container-fluid">
+		<div class="row" style="height:55px;">
+			<div class="col align-self-center">
+				<div class="col-9">
+				  <h4>รายการสินค้า</h4>
+				</div>
+			</div>
+  	</div>
+  		<form action="" method="post">
+			<div class="row">
+				<?php while($row = $result->fetch_assoc()){
+					if($row['product_amount']>0){?>
+					<input type="hidden" name="<?php echo $row['product_id']; ?>" value="<?php echo $row['product_id']; ?>">
+					<div class="col-sm-2">
+						<div class="card" style="height:330px; overflow:hidden;">
+						  <div class="card-body">
+								<h5 class="card-title"><?php echo $row['product_name'];?></h5>
+								<p class="card-text"><img height="200px" width="100%" src="<?php if($row['product_img']!=""){echo $row['product_img'];}else{echo "../img/no.png";}?>" style="border-radius:10px;"></p>
+								<input type="number" class="form-control" name="quantity<?php echo $row['product_id']; ?>" min="0" max="<?php echo $row['product_amount']; ?>" value="0" required>
+							</div>
+						</div>
+					</div>
+				<?php }
+				} ?>
+			</div>
+<br>
+					
+						<button type="submit" name="btn_sub" class="btn btn-primary" onclick="return confirm('ยืนยันการส่งข้อมูล ?');"><i class='fas fa-money-bill-wave'></i> ชำระค่าบริการ</button>
+								<button type="reset" class="btn btn-danger">ยกเลิก</button>
+					<?php
+						} 
+					?>
+								
+		</form>
+	</div>
+
+</body>
+</html>
+
+<?php
+	if(isset($_POST['btn_sub'])){
+		$member_id = $_SESSION['member_id'];
+		$total = 0;
+
+		$sql = "SELECT * FROM product";
+		$result = $connect->query($sql);
+		while($row = $result->fetch_assoc()){
+			$id = $row['product_id'];
+			$amount = $_POST['quantity'.$id];
+			if($amount>0){
+				if(empty($last_id)){
+					$sql2 = "INSERT INTO orders (member_id,type) VALUES ('$member_id','product')";
+					$connect->query($sql2);
+					$last_id = $connect->insert_id;
+				}
+				$sql = "INSERT INTO `orders_detail`(orders_id,`product_id`, `amount`) VALUES ('$last_id','$id','$amount')";
+				$connect->query($sql);
+				$total += $amount * $row['product_cost'];
+				$sql3 = "UPDATE product SET product_amount = (product_amount-$amount) WHERE product_id = '$id'";
+				$connect->query($sql3);
+			}
+		}
+		if(empty($last_id)){
+			echo "<script>alert('กรุณาเลือกรายการ')</script>";
+		}else{
+			echo "<script>alert('ทำรายการสำเร็จค่าบริการ $total บาท')</script>";
+			echo "<meta http-equiv='refresh' content='0;url=history.php'>";
+		}
+
+		
+	}
+	
+?>
